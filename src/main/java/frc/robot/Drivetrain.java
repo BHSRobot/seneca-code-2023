@@ -33,7 +33,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.networktables.*;
-
+import edu.wpi.first.math.filter.SlewRateLimiter;
 import java.io.IOException;
 import java.math.*;
 import java.nio.file.Path;
@@ -43,9 +43,12 @@ import frc.robot.Mech;
 
 
 public class Drivetrain {
+
     private Mech mech = new Mech();
     private XboxController control1 = new XboxController(1);
     private XboxController control2 = new XboxController(2);
+    private SlewRateLimiter slew = new SlewRateLimiter(1.5);
+    private SlewRateLimiter slew2 = new SlewRateLimiter(1.5);
     private CANSparkMax dt_rl = new CANSparkMax(1, MotorType.kBrushless);
     private CANSparkMax dt_rf = new CANSparkMax(2, MotorType.kBrushless);
     private CANSparkMax dt_rf1 = new CANSparkMax(3, MotorType.kBrushless);
@@ -70,6 +73,8 @@ public class Drivetrain {
     private boolean wrist = false;
     private boolean goPID = false;
     private boolean gyroGo = false;
+    private boolean ledSwitch = false;
+    private boolean cowGo = false;
     private Timer timer = new Timer();
     private ADXRS450_Gyro gyro = new ADXRS450_Gyro();
     private double x_off;
@@ -106,13 +111,14 @@ public class Drivetrain {
     }
 
     public void drive() {
-        if (control1.getAButtonPressed()) {
+        SmartDashboard.putNumber("slew", slew.calculate(control1.getLeftY()));
+        if (control1.getXButtonPressed()) {
             gyroGo = !gyroGo;
         }
-        if(control1.getPOV()==0){
+        if(control1.getAButtonPressed()){
             correctPos();
         }
-        dt_main.tankDrive(control1.getLeftY()*.85, control1.getRightY()*.85);
+        dt_main.tankDrive(slew.calculate(control1.getLeftY()),slew2.calculate(control1.getRightY()));
 
         mech.Intake(control2.getBButton(), control2.getYButton());
 
@@ -127,14 +133,9 @@ public class Drivetrain {
         mech.wristPID(wrist);
         mech.Elevator(ele);
         gyroCorrect();
-
-        //mech.inAngle(control2.getRightTriggerAxis() > 0, control2.getLeftTriggerAxis() > 0);
-        
-        //cow(KILLER)catcher
-        mech.cowCatch(control1.getRightTriggerAxis() > 0, control1.getLeftTriggerAxis() > 0);
-                
+               
         /*if (control1.getBButton()) {
-            pidCorrect();          
+            pidCorrect(true);          
         }*/
         
     }
@@ -160,27 +161,15 @@ public class Drivetrain {
         }
     }
 
-    public void pidCorrect() {
-        goPID = !goPID;
+    public void pidCorrect(boolean butt) {
         double y_off = NetworkTableInstance.getDefault().getTable("limelight").getEntry("ty").getDouble(0);
-        if (goPID = true && ( x_off > 1.5 || x_off < -1.5) ) {
+        if (butt && ( x_off > 1.5 || x_off < -1.5) ) {
             double errorAdjust = NetworkTableInstance.getDefault().getTable("limelight").getEntry("tx").getDouble(0);
             errorAdjust *= 0.05;
             dt_main.tankDrive(-errorAdjust, errorAdjust);
         }
-        if (goPID = true && ( x_off < 1.5 || x_off > -1.5 ) ) {
-            distance = ( h2 - h1 ) / Math.tan( k_limeAngle + y_off );
-            double output = pid.calculate((dt_enc_1.getPosition() * kEncConstant / 12.0), distance);
-            if(Math.abs(output) > 1) {
-                dt_main.tankDrive(-0.75, -0.75);
-            }
-            else {
-                dt_main.tankDrive(-output*.75, -output*.75);
-            }
-        }
     }
     
-
     public void autonInnie(){
         gyro.reset();
         timer.reset();
@@ -199,19 +188,20 @@ public class Drivetrain {
         SmartDashboard.putNumber("Time Test", time);
 
         if (time > 13.0 && mech.elEncoder.getPosition() > -1.7) {
-            mech.elevator.set(-.40);
+            mech.Elevator(true);
         }
        else if (time > 8.0 && mech.wristEnc.getPosition() < 25) {
-            mech.angle.set(.15);
+            mech.wristPID(true);
         }
         else if (time > 7.5)  {
-            mech.intake.set(-.3);
+            mech.intake.set(.3);
            
         }
-        else if (time>4.5 && mech.wristEnc.getPosition() >10){
-         mech.angle.set(-.20);
+        else if (time>6.0 && mech.wristEnc.getPosition() > 5){
+         mech.wristPID(false);
+         mech.Elevator(false);
         }
-        else if(time>3.0){
+        else if(time>2.0){
             dt_main.tankDrive(.55, .55);
         }
     }
@@ -224,6 +214,7 @@ public class Drivetrain {
         double ty = y_off.getDouble(0.0);
         SmartDashboard.putNumber("X-Off", tx);
         SmartDashboard.putNumber("Ybb-Off", ty);
+        SmartDashboard.putNumber("LIME DISTANCE", distance);
         SmartDashboard.putNumber("First Encoder Value", dt_enc_1.getPosition());
         SmartDashboard.putNumber("Robo X", odom.getPoseMeters().getX());
         SmartDashboard.putNumber("Robo Y", odom.getPoseMeters().getY());

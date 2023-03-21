@@ -7,6 +7,8 @@ import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.AddressableLED;
+import edu.wpi.first.wpilibj.AddressableLEDBuffer;
 
 import com.ctre.phoenixpro.hardware.Pigeon2;
 import com.revrobotics.*;
@@ -26,9 +28,22 @@ public class Robot extends TimedRobot {
   private int setpoint;
   private double error;
   private Drivetrain drivetrain = new Drivetrain();
+  public AddressableLED m_led;
+  public AddressableLEDBuffer m_ledBuffer;
 
  @Override
   public void robotInit() {
+    m_led = new AddressableLED(9);
+
+    m_ledBuffer = new AddressableLEDBuffer(150);
+    m_led.setLength(m_ledBuffer.getLength());
+
+    for (var i = 0; i < m_ledBuffer.getLength(); i++) {
+        m_ledBuffer.setRGB(i, 255, 0, 0);
+    }
+ 
+    m_led.setData(m_ledBuffer);   
+    m_led.start();
     drivetrain.getTelem();
     CameraServer.startAutomaticCapture();
     CameraServer.startAutomaticCapture();

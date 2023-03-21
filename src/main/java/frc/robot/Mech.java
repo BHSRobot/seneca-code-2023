@@ -14,21 +14,20 @@ public class Mech {
     public CANSparkMax elevator = new CANSparkMax(11, MotorType.kBrushless);
     public CANSparkMax angle = new CANSparkMax(9, MotorType.kBrushless);
     public CANSparkMax cowCatch = new CANSparkMax(8, MotorType.kBrushless);
-    public PIDController ElPid = new PIDController(1.35, 0, 0.2);
+    public PIDController ElPid = new PIDController(1.45, 0, 0.2);
     public PIDController wristPID = new PIDController(.40, 0, 0.0);
+    public PIDController cowPID = new PIDController(.55, 0, 0.0);
     public double kEncElConstant = 2 * Math.PI / 23;
     public RelativeEncoder elEncoder = elevator.getEncoder();
     public RelativeEncoder cowEnc = cowCatch.getEncoder();
     public RelativeEncoder wristEnc = angle.getEncoder();
-    public double EL_LIMIT = 0.4;
+    public double EL_LIMIT = 0.6;
     public double EL_LIMIT_DIST = 4.0;
     public double WRIST_SPEED_LIMIT = .2;
+    public double COW_SPEED_LIMIT = .35;
     public double WRIST_ERROR_MIN = 0.75;
-    public AddressableLED m_led;
-    public AddressableLEDBuffer m_ledBuffer;
     public double elEndpoint = 1.725;
     public double wristEnd = 32;
-
     // Control and Safety Parameters
         // Encoder Boundaries (Note: 32 counts is equal to 1 Revolution)
         // NOTE ! ! ! : Make sure cow catcher and angle are set to "default" positions.
@@ -71,6 +70,27 @@ public class Mech {
                 output = WRIST_SPEED_LIMIT * Math.signum(output);
             }
             angle.set(output);
+        }
+    }
+
+    public void cowPID(boolean butt) {
+        double curpoint = cowEnc.getPosition();
+        
+        if (butt) {
+            double output = cowPID.calculate(curpoint, COWENC_MAX);
+            // Check that error is significant enough to justify correction.
+            if (Math.abs(output) > COW_SPEED_LIMIT) {
+                output = COW_SPEED_LIMIT * Math.signum(output);
+            }
+            cowCatch.set(output);
+        }
+        else if (!butt) {
+            double output = cowPID.calculate(curpoint, 2);
+            // Check that error is significant enough to justify correction.
+            if (Math.abs(output) > COW_SPEED_LIMIT) {
+                output = COW_SPEED_LIMIT * Math.signum(output);
+            }
+            cowCatch.set(output);
         }
     }
 
@@ -124,30 +144,4 @@ public class Mech {
         intake.set(.50);
     }
 
-    public void setYellow() {
-        m_led = new AddressableLED(0);
-
-        m_ledBuffer = new AddressableLEDBuffer(150);
-        m_led.setLength(m_ledBuffer.getLength());
-
-        for (var i = 0; i < m_ledBuffer.getLength(); i++) {
-            m_ledBuffer.setRGB(i, 150, 65, 10);
-        }
-
-        m_led.setData(m_ledBuffer);   
-        m_led.start();
-    }
-
-    public void setPurple() {
-        m_led = new AddressableLED(0);
-
-        m_ledBuffer = new AddressableLEDBuffer(150);
-        m_led.setLength(m_ledBuffer.getLength());
-
-        for (var i = 0; i < m_ledBuffer.getLength(); i++) {
-            m_ledBuffer.setRGB(i, 190, 70, 191);
-        }
-
-        m_led.setData(m_ledBuffer); 
-    }
 }
