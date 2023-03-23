@@ -19,6 +19,7 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 import edu.wpi.first.wpilibj.Encoder;
 import java.math.*;
+ 
 //import com.ctre.phoenix.sensors.Pigeon2;
 
 
@@ -30,9 +31,17 @@ public class Robot extends TimedRobot {
   private Drivetrain drivetrain = new Drivetrain();
   public AddressableLED m_led;
   public AddressableLEDBuffer m_ledBuffer;
+  private static final String k_AutoEdge = "Default Edge Auton";
+  private static final String k_AutoMiddle = "Middle Auton";
+  private String m_autoSelected;
+  private final SendableChooser<String> m_chooser = new SendableChooser<>();
 
  @Override
   public void robotInit() {
+    m_chooser.setDefaultOption("Default Auto", k_AutoEdge);
+    m_chooser.addOption("Middle Auto", k_AutoMiddle);
+    SmartDashboard.putData("Auto Choices", m_chooser);
+
     m_led = new AddressableLED(9);
 
     m_ledBuffer = new AddressableLEDBuffer(150);
@@ -58,6 +67,8 @@ public class Robot extends TimedRobot {
   
   @Override
   public void autonomousInit() {
+    m_autoSelected = m_chooser.getSelected();
+    System.out.println("Auto Selected: " + m_autoSelected);
     drivetrain.autonInnie();
     drivetrain.getTelem();
   }
@@ -65,7 +76,19 @@ public class Robot extends TimedRobot {
   @Override
   public void autonomousPeriodic() {
     drivetrain.getTelem();
-    drivetrain.auton();
+    switch (m_autoSelected) {
+      case k_AutoMiddle:
+        drivetrain.autonMiddle();
+        break;
+      case k_AutoEdge:
+        drivetrain.auton();
+        break;
+      default:
+        drivetrain.auton();
+        break;
+    }
+    //drivetrain.auton();
+    //drivetrain.autonMiddle();
   }
 
   @Override

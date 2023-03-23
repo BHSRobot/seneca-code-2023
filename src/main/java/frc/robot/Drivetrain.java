@@ -206,6 +206,39 @@ public class Drivetrain {
         }
     }
 
+    public void autonMiddle() {
+        timer.start();
+        SmartDashboard.putNumber("Timer", timer.get());
+        mech.elevator.set(0.0);
+        mech.angle.set(0.0);
+        mech.intake.set(0.0);
+        dt_main.tankDrive(0.0,0.0);
+        double time = 15.0 - timer.get();
+
+        SmartDashboard.putNumber("Time Test", time);
+
+        if (time > 13.0 && mech.elEncoder.getPosition() > -1.7) {
+            mech.Elevator(true);
+        }
+       else if (time > 8.0 && mech.wristEnc.getPosition() < 25) {
+            mech.wristPID(true);
+        }
+        else if (time > 7.5)  {
+            mech.intake.set(.3);
+           
+        }
+        else if (time>5.5 && mech.wristEnc.getPosition() > 5){
+         mech.wristPID(false);
+         mech.Elevator(false);
+        }
+        else if(time > 4.0 && pig.getPitch() < 20){
+            dt_main.tankDrive(.35, .35);
+        }
+        else if (time > 0.5 && pig.getPitch() > 5) {
+            dt_main.tankDrive(.10, .10);
+        }
+    }
+
     public void getTelem() {
         NetworkTable table = NetworkTableInstance.getDefault().getTable("limelight");
         NetworkTableEntry x_off = table.getEntry("tx");
@@ -213,14 +246,13 @@ public class Drivetrain {
         double tx = x_off.getDouble(0.0);
         double ty = y_off.getDouble(0.0);
         SmartDashboard.putNumber("X-Off", tx);
-        SmartDashboard.putNumber("Ybb-Off", ty);
+        SmartDashboard.putNumber("Y-Off", ty);
         SmartDashboard.putNumber("LIME DISTANCE", distance);
         SmartDashboard.putNumber("First Encoder Value", dt_enc_1.getPosition());
-        SmartDashboard.putNumber("Robo X", odom.getPoseMeters().getX());
-        SmartDashboard.putNumber("Robo Y", odom.getPoseMeters().getY());
+        //SmartDashboard.putNumber("Robo X", odom.getPoseMeters().getX());
+        //SmartDashboard.putNumber("Robo Y", odom.getPoseMeters().getY());
         SmartDashboard.putNumber("Yaw", pig.getYaw());
         SmartDashboard.putNumber("Pitch", pig.getPitch());
-        SmartDashboard.putNumber("Roll", pig.getRoll());
         SmartDashboard.putNumber("Cow Encoder", mech.cowEnc.getPosition());
         SmartDashboard.putNumber("Elevator Encoder", mech.elEncoder.getPosition());
         SmartDashboard.putNumber("Wrist Encoder", mech.wristEnc.getPosition());
